@@ -275,131 +275,128 @@ This keeps persistence technology replaceable and prevents database concerns
 from leaking into business logic.
 
 
-## 7. Complete System Flow
+## 7. Assigned Domain and Twist Architecture
 
-The system processes a user request through a controlled orchestration
-workflow.
+### 7.1 Assigned Variant
 
-The high-level flow is:
+The assigned task variant is:
 
-    User
-      │
-      ▼
-    Presentation Layer
-      │
-      ▼
-    Application Use Case
-      │
-      ▼
-    Orchestrator
-      │
-      ├──────────────► Service Discovery Agent
-      │                       │
-      │                       ▼
-      │                Government Service Provider
-      │                       │
-      │                       ▼
-      │                Service Information
-      │
-      ├──────────────► Information / Workflow Agents
-      │                       │
-      │                       ▼
-      │                Workflow State
-      │
-      ├──────────────► Validation Agent
-      │                       │
-      │                       ▼
-      │                Validation Result
-      │
-      ├──────────────► Approval Gate
-      │                       │
-      │                User Approval
-      │                       │
-      │                       ▼
-      ├──────────────► Workflow Agent
-      │                       │
-      │                       ▼
-      │                Government Service Provider
-      │                       │
-      │                       ▼
-      │                External Government Service
-      │
-      ▼
-    Response Agent
-      │
-      ▼
-    Presentation Layer
-      │
-      ▼
-    User
+- Domain: D4 — Government: Citizen Services & Regulations
+- Twist: T6 — Document In / Document Out
 
-### 7.1 Request Lifecycle
+The D4 workflow is:
 
-A typical request follows these stages:
+Citizen describes situation
+→ identify service and eligibility
+→ identify required documents, fees, and timelines
+→ draft official response
+→ human officer approval
 
-1. The user submits a request through the presentation layer.
-2. The application creates a workflow context.
-3. The orchestrator analyzes the request and selects the appropriate agent.
-4. The Service Discovery Agent identifies the relevant government service.
-5. Required service information and user requirements are collected.
-6. The workflow state is updated after each meaningful step.
-7. The Validation Agent verifies that the required information is complete
-   and valid.
-8. If information is missing, the workflow pauses and requests the required
-   information from the user.
-9. If the workflow requires an external or sensitive action, the system
-   enters an approval state.
-10. The user explicitly approves the action.
-11. The Workflow Agent coordinates the execution.
-12. The appropriate provider communicates with the external government
-    service.
-13. The result is stored in the workflow state.
-14. The Response Agent prepares the final user-facing response.
-15. The workflow is marked as completed or failed.
+The system must prioritize grounded responses and must not invent
+government obligations, entitlements, eligibility rules, fees, or
+procedures that are not supported by the indexed corpus.
 
-### 7.2 Failure Handling
+When evidence is insufficient or conflicting, the workflow must escalate
+or return an explicit insufficient-evidence response rather than infer
+missing facts.
 
-Failures must be represented explicitly.
+### 7.2 D4 Specialized Agents
 
-Possible failure categories include:
+The system defines three specialized agents in addition to the
+orchestrator:
 
-- Invalid user input.
-- Missing required information.
-- Service provider failure.
-- External government service failure.
-- AI provider failure.
-- Validation failure.
-- Approval timeout or rejection.
-- Unexpected workflow errors.
+1. Eligibility Identifier
+   - Identifies the most relevant government service.
+   - Determines eligibility requirements from retrieved evidence.
+   - Produces structured eligibility findings with citations.
 
-The orchestrator should determine whether a failure can be retried,
-requires additional user input, or should terminate the workflow.
+2. Procedure Resolver
+   - Determines required documents.
+   - Extracts fees and timelines.
+   - Resolves procedural steps from the retrieved corpus.
+   - Produces structured procedure findings with citations.
 
-### 7.3 Human-in-the-Loop
+3. Response Drafter
+   - Converts validated workflow results into an official response.
+   - Preserves source citations.
+   - Must not introduce unsupported claims.
+   - Produces structured document content for the approval stage.
 
-Human approval is required before sensitive operations that may create
-external side effects.
+The orchestrator coordinates these agents and controls the workflow state,
+timeouts, retries, iteration limits, validation, and approval gate.
 
-The system must not interpret an AI-generated recommendation as user
-authorization.
+### 7.3 Human Approval
 
-The approval state should be explicit and recorded as part of the workflow
-state.
+Before a consequential response is finalized or exported, the workflow
+must enter an explicit human approval state.
 
-### 7.4 Observability
+The officer can:
 
-The system should provide sufficient observability to understand workflow
-execution.
+- Approve the response.
+- Reject the response.
+- Edit the response and approve it.
 
-The architecture should support:
+Every approval action is recorded in the audit trail.
 
-- Structured logging.
-- Workflow identifiers.
-- Agent execution tracking.
-- Provider execution tracking.
-- Error tracking.
-- Execution duration measurement.
-- Audit information for sensitive operations.
+No side-effecting tool may execute before the approval gate succeeds.
 
-Observability mechanisms must avoid exposing sensitive user information in
-logs.
+### 7.4 T6 Document Input
+
+The ingestion pipeline must support scanned PDF documents.
+
+For scanned pages, OCR is performed before normal text processing.
+
+The document processing pipeline is:
+
+Scanned PDF
+→ OCR
+→ OCR confidence assessment
+→ text validation/flagging
+→ cleaning
+→ chunking
+→ embedding
+→ indexing
+
+OCR confidence must be retained as document/page metadata where
+applicable.
+
+Low-confidence OCR content must be identifiable by downstream
+components and must not be treated as equally reliable evidence without
+appropriate validation.
+
+### 7.5 T6 Document Output
+
+The system generates a professionally formatted official response as
+DOCX and/or PDF.
+
+Generated documents must support:
+
+- Structured headings
+- Tables where appropriate
+- Source citations
+- Document metadata
+- Clearly separated factual information and generated response content
+
+The generated output is created only after the required human approval
+step.
+
+### 7.6 Grounding and Evidence Rules
+
+Every substantive claim in the final response must be traceable to
+retrieved source chunks.
+
+Each citation must contain enough metadata to identify the original
+document and location, such as:
+
+- Document identifier
+- Source
+- Section
+- Page or clause
+- Version
+
+If sufficient evidence cannot be retrieved, the system must explicitly
+state that the available corpus does not contain enough information.
+
+The system must never infer government obligations, rights, fees,
+deadlines, or eligibility requirements solely from model knowledge.
+
