@@ -4,6 +4,11 @@ import { ProcedureAgentImpl } from "./infrastructure/agents/procedure-agent.js";
 import { ResponseDrafterImpl } from "./infrastructure/agents/response-drafter.js";
 import { LocalDocumentRetriever } from "./infrastructure/retrieval/local-document-retriever.js";
 import { ApproveCitizenResponseUseCase } from "./application/use-cases/approve-citizen-response.js";
+import { DocumentIngestionService } from "./infrastructure/processing/document-ingestion-service.js";
+import { DocumentProcessor } from "./infrastructure/processing/document-processor.js";
+import { MockOcrProvider } from "./infrastructure/ocr/mock-ocr-provider.js";
+
+
 const documentRetriever = new LocalDocumentRetriever();
 
 const eligibilityAgent = new EligibilityAgentImpl(documentRetriever);
@@ -67,4 +72,44 @@ const editAndApproveResult = approvalUseCase.execute({
 console.log(
   "\nEdit and Approve Result:",
   JSON.stringify(editAndApproveResult, null, 2),
+);
+
+
+
+
+
+
+
+
+
+const ingestionService = new DocumentIngestionService(
+  new MockOcrProvider(),
+  new DocumentProcessor(),
+);
+
+const ingestionResult = await ingestionService.ingest(
+  "demo-document-1",
+  "Demo Government Document",
+  Buffer.from(
+    "Government service eligibility requirements.\fRequired documents and service procedure.",
+  ),
+);
+
+console.log(
+  "\nDocument Ingestion Result:",
+  JSON.stringify(ingestionResult, null, 2),
+);
+
+
+
+
+const lowConfidenceResult = await ingestionService.ingest(
+  "low-confidence-document",
+  "Low Confidence Document",
+  Buffer.from("Short OCR text."),
+);
+
+console.log(
+  "\nLow Confidence Document Result:",
+  JSON.stringify(lowConfidenceResult, null, 2),
 );
