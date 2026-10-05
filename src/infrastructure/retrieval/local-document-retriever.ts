@@ -2,22 +2,24 @@ import type {
   DocumentRetriever,
   RetrievedEvidence,
 } from "../../application/ports/document-retriever.js";
-import type { Citation } from "../../domain/types/citation.js";
+import { localEvidence } from "./local-evidence.js";
 
 export class LocalDocumentRetriever implements DocumentRetriever {
   async retrieve(query: string): Promise<RetrievedEvidence> {
-    const citation: Citation = {
-      documentId: "demo-government-guide",
-      documentName: "Demo Government Services Guide",
-      pageNumber: 1,
-      chunkId: "demo-chunk-1",
-      excerpt:
-        "Demo evidence for development and testing. This is not an official government source.",
-    };
+    const normalizedQuery = query.toLowerCase();
+
+    const matches = localEvidence.filter((evidence) => {
+      const searchableContent = evidence.content.toLowerCase();
+
+      return normalizedQuery
+        .split(/\s+/)
+        .filter((word) => word.length > 3)
+        .some((word) => searchableContent.includes(word));
+    });
 
     return {
-      content: `Demo evidence retrieved for query: ${query}`,
-      citations: [citation],
+      content: matches.map((evidence) => evidence.content).join("\n\n"),
+      citations: matches.map((evidence) => evidence.citation),
     };
   }
 }
