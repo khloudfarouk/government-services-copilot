@@ -5,5 +5,6 @@ import type { ProcedureFinding } from "../../domain/types/procedure-finding.js";
 export interface ProcedureAgent {
   resolve(
     request: CitizenRequest,
+    serviceId: string,
   ): Promise<AgentResult<ProcedureFinding>>;
 }

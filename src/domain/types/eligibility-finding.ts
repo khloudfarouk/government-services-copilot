@@ -1,3 +1,4 @@
+
 import type { Citation } from "./citation.js";
 
 export type EligibilityStatus =
@@ -6,6 +7,7 @@ export type EligibilityStatus =
   | "uncertain";
 
 export interface EligibilityFinding {
+  serviceId: string;
   requirement: string;
   status: EligibilityStatus;
   explanation: string;
