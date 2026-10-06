@@ -7,7 +7,9 @@ import { ApproveCitizenResponseUseCase } from "./application/use-cases/approve-c
 import { DocumentIngestionService } from "./infrastructure/processing/document-ingestion-service.js";
 import { DocumentProcessor } from "./infrastructure/processing/document-processor.js";
 import { MockOcrProvider } from "./infrastructure/ocr/mock-ocr-provider.js";
-
+import { ExportOfficialResponseUseCase } from "./application/use-cases/export-official-response.js";
+import { DocxDocumentExporter } from "./infrastructure/output/docx-document-exporter.js";
+import { writeFile } from "node:fs/promises";
 
 const documentRetriever = new LocalDocumentRetriever();
 
@@ -29,6 +31,27 @@ const request = {
 };
 
 const result = await processCitizenRequest.execute(request);
+
+if (result.draft) {
+  const exporter = new DocxDocumentExporter();
+
+  const exportUseCase = new ExportOfficialResponseUseCase(exporter);
+
+  const documentBuffer = await exportUseCase.execute(
+    result.draft,
+    "Government Service Official Response",
+  );
+
+  await writeFile(
+    "government-service-response.docx",
+    documentBuffer,
+  );
+
+  console.log(
+    "\nDocument Out: government-service-response.docx",
+  );
+}
+
 
 console.log(JSON.stringify(result, null, 2));
 
