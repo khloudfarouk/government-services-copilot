@@ -6,6 +6,8 @@ import type { WorkflowState } from "../../domain/types/workflow-state.js";
 import type { EligibilityAgent } from "../ports/eligibility-agent.js";
 import type { ProcedureAgent } from "../ports/procedure-agent.js";
 import type { ResponseDrafter } from "../ports/response-drafter.js";
+import type { WorkflowRunRepository } from "../ports/workflow-run-repository.js";
+
 
 export interface ProcessCitizenRequestResult {
     state: WorkflowState;
@@ -20,14 +22,34 @@ export class ProcessCitizenRequestUseCase {
         private readonly eligibilityAgent: EligibilityAgent,
         private readonly procedureAgent: ProcedureAgent,
         private readonly responseDrafter: ResponseDrafter,
-    ) { }
+        private readonly workflowRunRepository?: WorkflowRunRepository,) { }
 
+    private updateRunState(
+        requestId: string,
+        state: WorkflowState,
+    ): void {
+        this.workflowRunRepository?.updateState(
+            requestId,
+            state,
+            new Date().toISOString(),
+        );
+    }
     async execute(
         request: CitizenRequest,
     ): Promise<ProcessCitizenRequestResult> {
+        const now = new Date().toISOString();
+
+        this.workflowRunRepository?.save({
+            runId: request.requestId,
+            requestId: request.requestId,
+            state: "received",
+            createdAt: now,
+            updatedAt: now,
+        });
         const eligibilityResult = await this.eligibilityAgent.analyze(request);
 
         if (eligibilityResult.status === "insufficient-evidence") {
+            this.updateRunState(request.requestId, "insufficient-evidence");
             return {
                 state: "insufficient-evidence",
                 reason:
@@ -36,6 +58,7 @@ export class ProcessCitizenRequestUseCase {
         }
 
         if (eligibilityResult.status === "failed") {
+            this.updateRunState(request.requestId, "failed");
             return {
                 state: "failed",
                 reason:
@@ -44,6 +67,7 @@ export class ProcessCitizenRequestUseCase {
         }
 
         if (!eligibilityResult.data) {
+            this.updateRunState(request.requestId, "failed");
             return {
                 state: "failed",
                 reason: "Eligibility analysis completed without findings.",
@@ -55,6 +79,7 @@ export class ProcessCitizenRequestUseCase {
             eligibilityResult.data.serviceId,
         );
         if (procedureResult.status === "insufficient-evidence") {
+            this.updateRunState(request.requestId, "insufficient-evidence");
             return {
                 state: "insufficient-evidence",
                 eligibility: eligibilityResult.data,
@@ -64,6 +89,7 @@ export class ProcessCitizenRequestUseCase {
         }
 
         if (procedureResult.status === "failed") {
+            this.updateRunState(request.requestId, "failed");
             return {
                 state: "failed",
                 eligibility: eligibilityResult.data,
@@ -73,6 +99,7 @@ export class ProcessCitizenRequestUseCase {
         }
 
         if (!procedureResult.data) {
+            this.updateRunState(request.requestId, "failed");
             return {
                 state: "failed",
                 eligibility: eligibilityResult.data,
@@ -81,12 +108,14 @@ export class ProcessCitizenRequestUseCase {
         }
 
         const draftResult = await this.responseDrafter.draft(
+            
             request,
             eligibilityResult.data,
             procedureResult.data,
         );
 
         if (draftResult.status === "insufficient-evidence") {
+            this.updateRunState(request.requestId, "insufficient-evidence");
             return {
                 state: "insufficient-evidence",
                 eligibility: eligibilityResult.data,
@@ -97,6 +126,7 @@ export class ProcessCitizenRequestUseCase {
         }
 
         if (draftResult.status === "failed") {
+            this.updateRunState(request.requestId, "insufficient-evidence");
             return {
                 state: "failed",
                 eligibility: eligibilityResult.data,
@@ -114,6 +144,11 @@ export class ProcessCitizenRequestUseCase {
                 reason: "Response drafting completed without a draft.",
             };
         }
+        this.workflowRunRepository?.updateState(
+            request.requestId,
+            "awaiting-approval",
+            new Date().toISOString(),
+        );
 
         return {
             state: "awaiting-approval",
