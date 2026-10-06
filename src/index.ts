@@ -57,7 +57,9 @@ console.log(JSON.stringify(result, null, 2));
 
 const approvalUseCase = new ApproveCitizenResponseUseCase();
 
-const approvalResult = approvalUseCase.execute({
+const approvalResult = approvalUseCase.execute(
+  request.requestId,
+  {
   action: "approve",
   officerId: "officer-demo-1",
   decidedAt: new Date().toISOString(),
@@ -72,12 +74,15 @@ console.log(
 
 
 
-const rejectionResult = approvalUseCase.execute({
-  action: "reject",
-  officerId: "officer-demo-2",
-  decidedAt: new Date().toISOString(),
-  comment: "Evidence needs further review.",
-});
+const rejectionResult = approvalUseCase.execute(
+  request.requestId,
+  {
+    action: "reject",
+    officerId: "officer-demo-2",
+    decidedAt: new Date().toISOString(),
+    comment: "Evidence needs further review.",
+  },
+);
 
 console.log(
   "\nRejection Result:",
@@ -85,12 +90,15 @@ console.log(
 );
 
 
-const editAndApproveResult = approvalUseCase.execute({
-  action: "edit-and-approve",
-  officerId: "officer-demo-3",
-  decidedAt: new Date().toISOString(),
-  comment: "Response edited and approved by the officer.",
-});
+const editAndApproveResult = approvalUseCase.execute(
+  request.requestId,
+  {
+    action: "edit-and-approve",
+    officerId: "officer-demo-3",
+    decidedAt: new Date().toISOString(),
+    comment: "Response edited and approved by the officer.",
+  },
+);
 
 console.log(
   "\nEdit and Approve Result:",

@@ -97,7 +97,10 @@ export async function buildServer() {
         }),
       };
 
-      const result = useCase.execute(decision);
+     const result = useCase.execute(
+  (request.params as { requestId: string }).requestId,
+  decision,
+);
 
       return reply.send({
         requestId: (request.params as { requestId: string }).requestId,
