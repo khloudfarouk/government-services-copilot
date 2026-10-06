@@ -1,12 +1,29 @@
 import Fastify from "fastify";
+import fastifySwagger from "@fastify/swagger";
+import fastifySwaggerUi from "@fastify/swagger-ui";
 import {
   buildApproveCitizenResponseUseCase,
   buildProcessCitizenRequestUseCase,
 } from "./dependencies.js";
 
-export function buildServer() {
+export async function buildServer() {
   const app = Fastify({
     logger: true,
+  });
+
+  await app.register(fastifySwagger, {
+    openapi: {
+      info: {
+        title: "Government Services Copilot API",
+        description:
+          "HTTP API for the Government Services Copilot agentic workflow.",
+        version: "1.0.0",
+      },
+    },
+  });
+
+  await app.register(fastifySwaggerUi, {
+    routePrefix: "/docs",
   });
 
   app.get("/health", async () => {
