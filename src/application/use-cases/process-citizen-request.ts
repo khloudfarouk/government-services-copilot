@@ -7,7 +7,7 @@ import type { EligibilityAgent } from "../ports/eligibility-agent.js";
 import type { ProcedureAgent } from "../ports/procedure-agent.js";
 import type { ResponseDrafter } from "../ports/response-drafter.js";
 import type { WorkflowRunRepository } from "../ports/workflow-run-repository.js";
-
+import { isPromptInjection } from "../security/prompt-injection-detector.js";
 
 export interface ProcessCitizenRequestResult {
     state: WorkflowState;
@@ -46,6 +46,34 @@ export class ProcessCitizenRequestUseCase {
             createdAt: now,
             updatedAt: now,
         });
+
+
+        if (isPromptInjection(request.message)) {
+            this.updateRunState(
+                request.requestId,
+                "failed",
+            );
+
+            return {
+                state: "failed",
+                reason:
+                    "Request rejected because it contains a prompt injection attempt.",
+            };
+        }
+
+
+        if (isPromptInjection(request.message)) {
+            this.updateRunState(
+                request.requestId,
+                "failed",
+            );
+
+            return {
+                state: "failed",
+                reason:
+                    "Request rejected because it contains a prompt injection attempt.",
+            };
+        }
         const eligibilityResult = await this.eligibilityAgent.analyze(request);
 
         if (eligibilityResult.status === "insufficient-evidence") {
@@ -108,7 +136,7 @@ export class ProcessCitizenRequestUseCase {
         }
 
         const draftResult = await this.responseDrafter.draft(
-            
+
             request,
             eligibilityResult.data,
             procedureResult.data,
