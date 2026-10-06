@@ -7,7 +7,7 @@ import { LocalDocumentRetriever } from "../retrieval/local-document-retriever.js
 import { createDatabase } from "./../persistence/database.js";
 import { SqliteWorkflowRunRepository } from "./../persistence/sqlite-workflow-run-repository.js";
 import { SqliteApprovalDecisionRepository } from "../persistence/sqlite-approval-decision-repository.js";
-
+import { GetWorkflowRunUseCase } from "../../application/use-cases/get-workflow-run.js";
 export function buildProcessCitizenRequestUseCase() {
   const retriever = new LocalDocumentRetriever();
   const db = createDatabase();
@@ -33,4 +33,12 @@ export function buildApproveCitizenResponseUseCase() {
   return new ApproveCitizenResponseUseCase(
     approvalDecisionRepository,
   );
+}
+
+
+export function buildGetWorkflowRunUseCase() {
+  const db = createDatabase();
+  const workflowRunRepository = new SqliteWorkflowRunRepository(db);
+
+  return new GetWorkflowRunUseCase(workflowRunRepository);
 }

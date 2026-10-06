@@ -1,6 +1,7 @@
 import Fastify from "fastify";
 import fastifySwagger from "@fastify/swagger";
 import fastifySwaggerUi from "@fastify/swagger-ui";
+import { buildGetWorkflowRunUseCase } from "./dependencies.js";
 import {
   buildApproveCitizenResponseUseCase,
   buildProcessCitizenRequestUseCase,
@@ -108,6 +109,22 @@ export async function buildServer() {
       });
     },
   );
+
+
+  app.get("/runs/:runId", async (request, reply) => {
+  const { runId } = request.params as { runId: string };
+
+  const useCase = buildGetWorkflowRunUseCase();
+  const run = useCase.execute(runId);
+
+  if (!run) {
+    return reply.code(404).send({
+      error: "Workflow run not found",
+    });
+  }
+
+  return reply.send(run);
+});
 
   return app;
 }
