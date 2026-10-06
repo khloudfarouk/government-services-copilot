@@ -1,11 +1,16 @@
 import Fastify from "fastify";
 import fastifySwagger from "@fastify/swagger";
 import fastifySwaggerUi from "@fastify/swagger-ui";
-import { buildGetWorkflowRunUseCase } from "./dependencies.js";
+
 import {
   buildApproveCitizenResponseUseCase,
+  buildDocumentIngestionService,
+  buildGetWorkflowRunUseCase,
   buildProcessCitizenRequestUseCase,
 } from "./dependencies.js";
+
+import { readFile } from "node:fs/promises";
+import path from "node:path";
 
 export async function buildServer() {
   const app = Fastify({
@@ -32,6 +37,65 @@ export async function buildServer() {
       status: "ok",
     };
   });
+
+  app.post(
+    "/documents",
+    {
+      schema: {
+        body: {
+          type: "object",
+          required: ["documentName", "content"],
+          properties: {
+            documentId: {
+              type: "string",
+            },
+            documentName: {
+              type: "string",
+              minLength: 1,
+            },
+            content: {
+              type: "string",
+              minLength: 1,
+            },
+          },
+          additionalProperties: false,
+        },
+      },
+    },
+    async (request, reply) => {
+      const body = request.body as {
+        documentId?: string;
+        documentName: string;
+        content: string;
+      };
+
+      const { ingestionService, retriever } =
+        buildDocumentIngestionService();
+
+      const documentId =
+        body.documentId ?? `document-${Date.now()}`;
+
+      const result = await ingestionService.ingest(
+        documentId,
+        body.documentName,
+        Buffer.from(body.content, "utf-8"),
+      );
+
+      retriever.addChunks(result.chunks);
+
+      return reply.send({
+        documentId,
+        documentName: body.documentName,
+        pages: result.document.pages.length,
+        chunks: result.chunks.length,
+        chunksDetails: result.chunks.map((chunk) => ({
+          chunkId: chunk.chunkId,
+          pageNumber: chunk.pageNumber,
+          ocrConfidence: chunk.ocrConfidence,
+        })),
+      });
+    },
+  );
 
   app.post(
     "/requests",
@@ -98,10 +162,10 @@ export async function buildServer() {
         }),
       };
 
-     const result = useCase.execute(
-  (request.params as { requestId: string }).requestId,
-  decision,
-);
+      const result = useCase.execute(
+        (request.params as { requestId: string }).requestId,
+        decision,
+      );
 
       return reply.send({
         requestId: (request.params as { requestId: string }).requestId,
@@ -110,21 +174,31 @@ export async function buildServer() {
     },
   );
 
-
   app.get("/runs/:runId", async (request, reply) => {
-  const { runId } = request.params as { runId: string };
+    const { runId } = request.params as { runId: string };
 
-  const useCase = buildGetWorkflowRunUseCase();
-  const run = useCase.execute(runId);
+    const useCase = buildGetWorkflowRunUseCase();
+    const run = useCase.execute(runId);
 
-  if (!run) {
-    return reply.code(404).send({
-      error: "Workflow run not found",
-    });
-  }
+    if (!run) {
+      return reply.code(404).send({
+        error: "Workflow run not found",
+      });
+    }
 
-  return reply.send(run);
-});
+    return reply.send(run);
+  });
+
+  app.get("/", async (_request, reply) => {
+    const filePath = path.resolve(
+      process.cwd(),
+      "public/index.html",
+    );
+
+    const html = await readFile(filePath, "utf8");
+
+    return reply.type("text/html").send(html);
+  });
 
   return app;
 }

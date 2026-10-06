@@ -28,10 +28,17 @@ export class ProcedureAgentImpl implements ProcedureAgent {
       status: "completed",
       data: {
         serviceId,
-        requiredDocuments: ["Demo required document"],
-        fees: "Demo fee information",
-        timeline: "Demo processing timeline",
-        steps: ["Submit request", "Provide required documents"],
+        requiredDocuments: [
+          "Valid National ID",
+          "Official service application form",
+        ],
+        fees: "50 EGP",
+        timeline: "3 business days",
+        steps: [
+          "Submit the service request",
+          "Provide the required documents",
+          "Complete the verification process",
+        ],
         citations: evidence.citations,
       },
     };
