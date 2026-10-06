@@ -32,6 +32,8 @@
     "typescript": "^7.0.2"
   },
   "dependencies": {
+    "@fastify/swagger": "^9.9.1",
+    "@fastify/swagger-ui": "^6.1.1",
     "docx": "^9.8.1",
     "esbuild": "^0.28.2",
     "fastify": "^5.12.5",
