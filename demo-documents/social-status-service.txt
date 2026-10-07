@@ -1,7 +1,12 @@
 Social Status Certificate Service
 
+Service Description:
+The Social Status Certificate is an official document issued to registered citizens who meet the eligibility requirements.
+
 Eligibility:
 An applicant is eligible to request a Social Status Certificate if they are a registered citizen and provide a valid National ID.
+
+An applicant is not eligible if they are not a registered citizen or cannot provide a valid National ID.
 
 Required Documents:
 The applicant must provide a valid National ID and complete the official service application form.
@@ -14,3 +19,6 @@ The service fee is 50 EGP.
 
 Processing Time:
 The expected processing time is 3 business days.
+
+Important Limitation:
+This service guide only contains information about Social Status Certificate services. It does not contain procedures, eligibility rules, fees, or required documents for other government services.
